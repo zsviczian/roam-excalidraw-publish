@@ -10,7 +10,7 @@ if (typeof window.ExcalidrawWrapper === 'undefined') {
     settingsUID  : 'ExcalSET_',
     log (...args) {console.log("<<< Roam-Excalidraw loader >>> ",...args)},
   }
-
+  debugger;
   const addElementToPage = (element, tagId, typeT )=> {
     try { document.getElementById(tagId).remove() } catch(e){};  //Delete any existing reference
     Object.assign(element, { type:typeT, async:false, id:tagId } );
