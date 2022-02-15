@@ -1,4 +1,4 @@
-ExcalidrawConfig.mainComponent = `(ns excalidraw.app.beta.v09
+ExcalidrawConfig.mainComponent = `(ns excalidraw.app.beta.v10
   (:require 
    [clojure.set :as s]
    [reagent.core :as r]
@@ -44,14 +44,14 @@ ExcalidrawConfig.mainComponent = `(ns excalidraw.app.beta.v09
   (.createBlock js/window.ExcalidrawWrapper parent-uid order block-string))
 
 (defn block-update [x]
-  (.updateBlock js/window.ExcalidrawWrapper x))
+  (.updateBlock js/window.ExcalidrawWrapper (clj->js x)))
 
 (defn pretty-settings [x]
   (let [y (into (sorted-map) (sort-by first (seq x)))]
     (-> (str y)
-          (str/replace "{" "{\\n")
-          (str/replace ", " "\\n")
-          (str/replace "}" "\\n}"))))
+          (str/replace "{" "{\n")
+          (str/replace ", " "\n")
+          (str/replace "}" "\n}"))))
 
 (defn get-next-block-order [x]
   (let [o (rd/q '[:find (max ?o) . 
@@ -103,13 +103,13 @@ ExcalidrawConfig.mainComponent = `(ns excalidraw.app.beta.v09
   ;;(debug ["(js-to-clj-str): x: " x (str x)])
   (let [res (-> x
               (str)
-              (str/replace #"\\(#js"  "")
+              (str/replace #"\(#js"  "")
               (str/replace #"#js" "")
-              (str/replace #"\\}\\}\\)" "}}"))]
+              (str/replace #"\}\}\)" "}}"))]
     res))
 
 (defn fix-double-bracket [x]
-  (str/replace x #"\\[{2}" "[ ["))
+  (str/replace x #"\[{2}" "[ ["))
 
 (defn get-data-block-uid [x]
   (rd/q '[:find ?drawing-uid .
@@ -257,7 +257,7 @@ ExcalidrawConfig.mainComponent = `(ns excalidraw.app.beta.v09
       nil)
     (do
       (let [data-string (get-in (first x) [0 :block/string])
-            return-string (second (re-find #"ExcalDATA\\){2}\\s*(\\{.*\\})\\s*\\}{2}" data-string))]
+            return-string (second (re-find #"ExcalDATA\){2}\s*(\{.*\})\s*\}{2}" data-string))]
         ;;;(debug ["(get-data-from-block-string) returning: " retrun-string])
         (edn/read-string return-string)))))
 
@@ -331,7 +331,7 @@ ExcalidrawConfig.mainComponent = `(ns excalidraw.app.beta.v09
               (do
                 ;if text has changed, update measures
                 (if-not (= block-text (:text y)) 
-                  (let [text-measures (js->clj (.measureText js/ExcalidrawWrapper block-text y))]
+                  (let [text-measures (js->clj (.measureText js/ExcalidrawWrapper block-text (clj->js y)))]
                     (reset! text-elements 
                               (conj @text-elements 
                                       (-> y 
@@ -363,7 +363,7 @@ ExcalidrawConfig.mainComponent = `(ns excalidraw.app.beta.v09
                       row (mod @counter (:nested-text-rows @app-settings))
                       x (+ (:nested-text-start-left @app-settings) (* col (:nested-text-col-width @app-settings)))
                       y (+ (:nested-text-start-top @app-settings) (* row (:nested-text-row-height @app-settings)))  
-                      text-measures (js->clj (.measureText js/ExcalidrawWrapper text dummy))]
+                      text-measures (js->clj (.measureText js/ExcalidrawWrapper text (clj->js dummy)))]
                   ;;(debug ["(update-drawing-based-on-nested-blocks) add new: text" text "id" id])
                   (reset! text-elements 
                             (conj @text-elements 
@@ -404,10 +404,11 @@ ExcalidrawConfig.mainComponent = `(ns excalidraw.app.beta.v09
 
 (defn generate-scene [x] ;{:drawing atom}]
   ;;(debug ["(generate-scene) enter" x])
-  (update-drawing-based-on-nested-blocks {:elements (:elements (:drawing @(:drawing x)))
-                                                      :appState (:appState (:drawing @(:drawing x)))
-                                                      :nested-text (:text @(:drawing x))
-                                                      :roamExcalidraw (:roamExcalidraw (:drawing @(:drawing x)))}))
+  (clj->js
+   (update-drawing-based-on-nested-blocks {:elements (:elements (:drawing @(:drawing x)))
+                                           :appState (:appState (:drawing @(:drawing x)))
+                                           :nested-text (:text @(:drawing x))
+                                           :roamExcalidraw (:roamExcalidraw (:drawing @(:drawing x)))})))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Main Function Form-3
@@ -418,7 +419,7 @@ ExcalidrawConfig.mainComponent = `(ns excalidraw.app.beta.v09
 
 (defn update-scene [ew scene]
   ;;(debug ["(update-scene) scene: " scene])
-  (if-not (nil? @ew) (.updateScene @ew scene)))
+  (if-not (nil? @ew) (.updateScene @ew (clj->js scene))))
 
 (defn get-drawing [ew]
   ;;(debug ["(get-drawing): " (.getDrawing js/window.ExcalidrawWrapper @ew)])
@@ -486,10 +487,10 @@ ExcalidrawConfig.mainComponent = `(ns excalidraw.app.beta.v09
   ))
                                   
 (defn get-embed-image [drawing dom-node app-name]
-  (if (= (:img @app-settings) "PNG")
-    (.getPNG js/window.ExcalidrawWrapper drawing dom-node app-name)
-    (.getSVG js/window.ExcalidrawWrapper drawing dom-node app-name)
-  ))
+  (let [drawing-js (clj->js drawing)]
+    (if (= (:img @app-settings) "PNG")
+      (.getPNG js/window.ExcalidrawWrapper drawing-js dom-node app-name)
+      (.getSVG js/window.ExcalidrawWrapper drawing-js dom-node app-name))))
 
 (defn main [{:keys [block-uid]} & args]
   ;;(debug ["(main) component starting..."])
@@ -513,12 +514,13 @@ ExcalidrawConfig.mainComponent = `(ns excalidraw.app.beta.v09
         drawing-on-change-callback (fn [x] (if-not @saving-flag
                                              (.updateScene 
                                               @ew 
-                                              (save-component 
-                                               {:block-uid block-uid 
-                                                :map-string (js-to-clj-str x) 
-                                                :cs cs
-                                                :drawing drawing
-                                                :saving-flag saving-flag}))))
+                                              (clj->js 
+                                               (save-component
+                                                {:block-uid block-uid
+                                                 :map-string (js-to-clj-str x)
+                                                 :cs cs
+                                                 :drawing drawing
+                                                 :saving-flag saving-flag})))))
         pull-watch-callback (fn [before after]
                               ;;(debug ["(pull-watch-callback) after:" (js-to-clj-str after)])
                               (if-not (or @saving-flag (is-full-screen cs) @pull-watch-active)
@@ -526,7 +528,7 @@ ExcalidrawConfig.mainComponent = `(ns excalidraw.app.beta.v09
                                   (reset! pull-watch-active true)
                                   (let [drawing-data (pull-children block-uid 0)
                                         drawing-text (pull-children block-uid 1)
-                                        empty-block-uid (re-find #":block/uid \\"(.*)\\", (:block/string \\"\\")" (str drawing-data))] ;check if user has nested a block under a new drawing
+                                        empty-block-uid (re-find #":block/uid \"(.*)\", (:block/string \"\")" (str drawing-data))] ;check if user has nested a block under a new drawing
                                     (if-not (nil? empty-block-uid)
                                       (if-not (= (second empty-block-uid) (:prev-empty-block @cs))
                                         (do
