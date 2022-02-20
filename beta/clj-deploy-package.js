@@ -103,13 +103,13 @@ ExcalidrawConfig.mainComponent = `(ns excalidraw.app.beta.v10
   ;;(debug ["(js-to-clj-str): x: " x (str x)])
   (let [res (-> x
               (str)
-              (str/replace #"\(#js"  "")
+              (str/replace #"\\(#js"  "")
               (str/replace #"#js" "")
-              (str/replace #"\}\}\)" "}}"))]
+              (str/replace #"\\}\\}\\)" "}}"))]
     res))
 
 (defn fix-double-bracket [x]
-  (str/replace x #"\[{2}" "[ ["))
+  (str/replace x #"\\[{2}" "[ ["))
 
 (defn get-data-block-uid [x]
   (rd/q '[:find ?drawing-uid .
@@ -257,7 +257,7 @@ ExcalidrawConfig.mainComponent = `(ns excalidraw.app.beta.v10
       nil)
     (do
       (let [data-string (get-in (first x) [0 :block/string])
-            return-string (second (re-find #"ExcalDATA\){2}\s*(\{.*\})\s*\}{2}" data-string))]
+            return-string (second (re-find #"ExcalDATA\\){2}\\s*(\\{.*\\})\\s*\\}{2}" data-string))]
         ;;;(debug ["(get-data-from-block-string) returning: " retrun-string])
         (edn/read-string return-string)))))
 
@@ -528,7 +528,7 @@ ExcalidrawConfig.mainComponent = `(ns excalidraw.app.beta.v10
                                   (reset! pull-watch-active true)
                                   (let [drawing-data (pull-children block-uid 0)
                                         drawing-text (pull-children block-uid 1)
-                                        empty-block-uid (re-find #":block/uid \"(.*)\", (:block/string \"\")" (str drawing-data))] ;check if user has nested a block under a new drawing
+                                        empty-block-uid (re-find #":block/uid \\"(.*)\\", (:block/string \\"\\")" (str drawing-data))] ;check if user has nested a block under a new drawing
                                     (if-not (nil? empty-block-uid)
                                       (if-not (= (second empty-block-uid) (:prev-empty-block @cs))
                                         (do
