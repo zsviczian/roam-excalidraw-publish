@@ -49,9 +49,9 @@ ExcalidrawConfig.mainComponent = `(ns excalidraw.app.beta.v10
 (defn pretty-settings [x]
   (let [y (into (sorted-map) (sort-by first (seq x)))]
     (-> (str y)
-          (str/replace "{" "{\n")
-          (str/replace ", " "\n")
-          (str/replace "}" "\n}"))))
+          (str/replace "{" "{\\n")
+          (str/replace ", " "\\n")
+          (str/replace "}" "\\n}"))))
 
 (defn get-next-block-order [x]
   (let [o (rd/q '[:find (max ?o) . 
@@ -630,7 +630,9 @@ ExcalidrawConfig.mainComponent = `(ns excalidraw.app.beta.v10
                             [:div
                               {:id app-name
                               :style {:position "relative" :width "100%" :height "100%"}}
-]])})))))`; ExcalidrawConfig.dataComponent = `(ns excalidraw.data.alpha.v01)
+]])})))))`;
+
+ExcalidrawConfig.dataComponent = `(ns excalidraw.data.alpha.v01)
 
 (def silent true)
 (defn debug [x] 
@@ -730,7 +732,8 @@ ExcalidrawConfig.mainComponent = `(ns excalidraw.app.beta.v10
                               [:div {:id app-name} ]]
                             )})))))
 
-`; 
+`;
+
 if(typeof window.ExcalidrawLoader === 'undefined') {
   window.ExcalidrawLoader = {
     sketchingUID : ExcalidrawConfig.sketchingUID,
